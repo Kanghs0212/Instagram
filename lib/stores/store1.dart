@@ -22,6 +22,7 @@ class Store extends ChangeNotifier {
         .get();
     liked = snapshot.docs.map((doc) => doc['postId'] as String).toList();
     print(liked);
+    notifyListeners();
   }
 
   addLiked(docId) async{
