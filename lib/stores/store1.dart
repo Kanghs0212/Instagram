@@ -14,6 +14,44 @@ class Store extends ChangeNotifier {
   var friend = false;
   var profileImage = [];
   var liked=[];
+  var following=[];
+  var docRef;
+
+  getFollowing() async {
+    var snapshot = await firestore
+        .collection('following')
+        .where('follower', isEqualTo:   auth.currentUser?.email ?? '')
+        .get();
+    following = snapshot.docs.map((doc) => doc['target'] as String).toList();
+    print(following);
+    notifyListeners();
+  }
+
+  addFollowing() async{
+    if ( auth.currentUser?.uid == name) {
+      return;
+    }
+
+    var newDoc = await firestore.collection('following').add({
+      "follower": auth.currentUser?.email ?? "anonymous",
+      "target": name,
+    });
+    await getFollowing();
+  }
+
+  deleteFollowing() async{
+    var snapshot = await firestore
+        .collection('following')
+        .where('follower', isEqualTo:   auth.currentUser?.email ?? '')
+        .where('target', isEqualTo: name)
+        .get();
+
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+
+    await getFollowing();
+  }
 
   getLiked() async {
     var snapshot = await firestore
@@ -21,7 +59,6 @@ class Store extends ChangeNotifier {
         .where('user', isEqualTo:   auth.currentUser?.email ?? '')
         .get();
     liked = snapshot.docs.map((doc) => doc['postId'] as String).toList();
-    print(liked);
     notifyListeners();
   }
 
@@ -29,11 +66,6 @@ class Store extends ChangeNotifier {
     if (docId == null || auth.currentUser?.uid==null) {
       return;
     }
-
-    var tempData = {
-      "user": auth.currentUser?.email ?? "anonymous",
-      "postId": docId,
-    };
 
     var newDoc = await firestore.collection('liked').add({
       "user": auth.currentUser?.email ?? "anonymous",
@@ -61,11 +93,14 @@ class Store extends ChangeNotifier {
       if (user == null) {
         // 로그아웃됨
         print('사용자가 로그아웃했습니다.');
-
+        liked.clear();
+        following.clear();
+        notifyListeners();
       } else {
         // 로그인됨
         print('사용자 로그인됨: ${user.email}');
         await getLiked();
+        await getFollowing();
       }
     });
   }
@@ -79,13 +114,16 @@ class Store extends ChangeNotifier {
         var userDocs = await firestore.collection('user').where('name', isEqualTo: auth.currentUser?.email ?? '').get();
         userData = userDocs.docs.map((doc) => doc.data()).toList();
         follower = userData[0]['follower'];
-        print('난 나야');
       }
       else{
-        print('난 남이야');
-        print(inputName);
         var userDocs = await firestore.collection('user').where('name', isEqualTo: inputName).get();
         userData = userDocs.docs.map((doc) => doc.data()).toList();
+        docRef = userDocs.docs.first.reference;
+        if(following.contains(inputName)){
+          friend=true;
+        }else {
+          friend=false;
+        }
         follower = userData[0]['follower'];
         name = inputName;
       }
@@ -106,12 +144,19 @@ class Store extends ChangeNotifier {
     }
   }
 
-  addFollower() {
+  addFollower() async {
     if (friend) {
       follower--;
+      deleteFollowing();
     } else {
       follower++;
+      addFollowing();
     }
+
+    await docRef.update({
+      'follower':  follower,
+    });
+
     friend = !friend;
     notifyListeners();
   }

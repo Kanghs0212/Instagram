@@ -57,6 +57,7 @@ class _MyAppState extends State<MyApp> {
     try{
       lastDoc = await firestore.collection('post').limit(3).get();
       context.read<Store>().getLiked();
+      context.read<Store>().getFollowing();
 
       setState(() {
         data = lastDoc.docs.map((doc) => doc.data()).toList();
@@ -104,6 +105,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     initNotification(context);
+    context.read<Store>().observeAuthChanges();
     Future.microtask(() {
       getData(); // 여기선 context 사용 가능
     });

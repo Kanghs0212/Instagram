@@ -68,14 +68,14 @@ class _HomeTapState extends State<HomeTap> {
     }
   }
 
-  pressLikeButton(String docId){
+  pressLikeButton(String docId) async {
     var store = Provider.of<Store>(context, listen: false);
     var flag = store.liked.contains(docId);
 
     if(flag){
-      store.deleteLiked(docId);
+      await store.deleteLiked(docId);
     }else{
-      store.addLiked(docId);
+      await store.addLiked(docId);
     }
 
   }
