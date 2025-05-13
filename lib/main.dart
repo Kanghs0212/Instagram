@@ -49,8 +49,6 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   var tap = 0;
-  var data = [];
-  var docsId = [];
   var userImage;
 
   getData() async {
@@ -66,8 +64,8 @@ class _MyAppState extends State<MyApp> {
       context.read<Store>().getFollowing();
 
       setState(() {
-        data = context.read<Store>().lastDoc.docs.map((doc) => doc.data()).toList();
-        docsId = context.read<Store>().lastDoc.docs.map((doc) => doc.id).toList();
+        context.read<Store>().data = context.read<Store>().lastDoc.docs.map((doc) => doc.data()).toList();
+        context.read<Store>().docsId = context.read<Store>().lastDoc.docs.map((doc) => doc.id).toList();
       });
     }catch(e){
       print(e);
@@ -82,7 +80,7 @@ class _MyAppState extends State<MyApp> {
     }
 
     var newDoc = await firestore.collection('post').add({
-      "id": data.length,
+      "id": context.read<Store>().data.length,
       "image": image,         // 이 값은 String (예: Firebase Storage URL) 이어야 함!
       "likes": 30,
       "timestamp": FieldValue.serverTimestamp(),  // 또는 원하는 날짜 형식으로 설정
@@ -91,7 +89,7 @@ class _MyAppState extends State<MyApp> {
     });
 
     setState(() {
-      docsId.add(newDoc.id);
+      context.read<Store>().docsId.add(newDoc.id);
     });
   }
 
@@ -125,11 +123,11 @@ class _MyAppState extends State<MyApp> {
                   setState(() {
                     userImage = File(image.path);
                   });
-                }
 
-                Navigator.push(context, MaterialPageRoute(builder: (c) {
-                  return upload(userImage: userImage, addData: addData);
-                }));
+                  Navigator.push(context, MaterialPageRoute(builder: (c) {
+                    return upload(userImage: userImage, addData: addData);
+                  }));
+                }
               },
               icon: Icon(Icons.add_box_outlined),
             ),
@@ -162,7 +160,7 @@ class _MyAppState extends State<MyApp> {
 
 
       ),
-      body: [HomeTap(data: data, docsId: docsId), Shop()][tap],
+      body: [HomeTap(), Shop()][tap],
       bottomNavigationBar: BottomNavigationBar(
         iconSize: 30,
         showUnselectedLabels: false,

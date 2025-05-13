@@ -11,10 +11,7 @@ final firestore = FirebaseFirestore.instance;
 final auth = FirebaseAuth.instance;
 
 class HomeTap extends StatefulWidget {
-  HomeTap({super.key, this.data, this.docsId});
-
-  var data;
-  var docsId;
+  HomeTap({super.key});
 
   @override
   State<HomeTap> createState() => _HomeTapState();
@@ -69,8 +66,8 @@ class _HomeTapState extends State<HomeTap> {
         var tmpData = nextResult.docs.map((doc) => doc.data()).toList();
         var tmpIds = nextResult.docs.map((doc) => doc.id).toList();
 
-        widget.data.addAll(tmpData);
-        widget.docsId.addAll(tmpIds);
+        context.read<Store>().data.addAll(tmpData);
+        context.read<Store>().docsId.addAll(tmpIds);
       });
 
       // 다음 로딩을 위해 flag를 다시 false로
@@ -115,9 +112,9 @@ class _HomeTapState extends State<HomeTap> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.data.isNotEmpty) {
+    if (context.read<Store>().data.isNotEmpty) {
       return ListView.builder(
-          itemCount: widget.data.length,
+          itemCount: context.read<Store>().data.length,
           controller: scroll,
           itemBuilder: (context, i) {
             return Container(
@@ -125,9 +122,9 @@ class _HomeTapState extends State<HomeTap> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  widget.data[i]['image'].runtimeType == String
-                      ? Image.network(widget.data[i]['image'])  // URL이면 네트워크 이미지
-                      : Image.file(widget.data[i]['image']),
+                  context.read<Store>().data[i]['image'].runtimeType == String
+                      ? Image.network(context.read<Store>().data[i]['image'])  // URL이면 네트워크 이미지
+                      : Image.file(context.read<Store>().data[i]['image']),
                   Container(
                     margin: EdgeInsets.all(10),
                     child: Column(
@@ -135,28 +132,28 @@ class _HomeTapState extends State<HomeTap> {
                       children: [
                         GestureDetector(
                           onTap: () async {
-                            await pressLikeButton(widget.docsId[i]);
+                            await pressLikeButton(context.read<Store>().docsId[i]);
                             setState(() {});
                           },
                           child: Icon(
-                            context.watch<Store>().liked.contains(widget.docsId[i])
+                            context.watch<Store>().liked.contains(context.read<Store>().docsId[i])
                                 ? Icons.favorite
                                 : Icons.favorite_border,
                             size: 24, // 필요에 따라 크기 지정
                           ),
                         ),
-                        Text('좋아요 ${widget.data[i]['likes']}'),
+                        Text('좋아요 ${context.read<Store>().data[i]['likes']}'),
                         Row(
                           children: [
                             GestureDetector(
-                              child: Text(widget.data[i]['user']),
+                              child: Text(context.read<Store>().data[i]['user']),
                               onTap: () {
                                 if (auth.currentUser?.uid != null) {
                                   var name = auth.currentUser?.email ?? '';
                                   Navigator.push(
                                     context,
                                     PageRouteBuilder(
-                                      pageBuilder: (c, a1, a2) => Profile(isUser: name==widget.data[i]['user'], name: widget.data[i]['user']),
+                                      pageBuilder: (c, a1, a2) => Profile(isUser: name==context.read<Store>().data[i]['user'], name: context.read<Store>().data[i]['user']),
                                       transitionsBuilder: (c, a1, a2, child) => FadeTransition(
                                         opacity: a1,
                                         child: child,
@@ -170,7 +167,7 @@ class _HomeTapState extends State<HomeTap> {
                               },
                             ),
                             Text('  '),
-                            Text(widget.data[i]['content']),
+                            Text(context.read<Store>().data[i]['content']),
                           ],
                         )
                       ],

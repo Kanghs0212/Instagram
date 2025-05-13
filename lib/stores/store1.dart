@@ -18,6 +18,10 @@ class Store extends ChangeNotifier {
   var docRef;
   var lastDoc;
 
+  // 포스트 데이터
+  var data = [];
+  var docsId = [];
+
   getFollowing() async {
     var snapshot = await firestore
         .collection('following')
@@ -72,6 +76,28 @@ class Store extends ChangeNotifier {
       "user": auth.currentUser?.email ?? "anonymous",
       "postId": docId,
     });
+
+    // 포스트의 좋아요 개수 증가
+    int currentLikes=0;
+    var postRef = firestore.collection('post').doc(docId);
+
+    await firestore.runTransaction((transaction) async {
+      var snapshot = await transaction.get(postRef);
+      if (!snapshot.exists) return;
+
+      currentLikes = snapshot.data()?['likes'] ?? 0;
+      currentLikes++;
+      transaction.update(postRef, {
+        'likes': currentLikes ,
+      });
+    });
+
+    int index = docsId.indexOf(docId); // docId의 인덱스 찾기
+    if (index != -1) {
+      data[index]['likes'] = currentLikes; // 해당 인덱스의 likes 값 갱신
+      notifyListeners(); // UI 업데이트
+    }
+
     await getLiked();
   }
 
@@ -84,6 +110,28 @@ class Store extends ChangeNotifier {
 
     for (var doc in snapshot.docs) {
       await doc.reference.delete();
+    }
+
+    // 포스트 좋아요 개수 감소
+    int currentLikes=0;
+    var postRef = firestore.collection('post').doc(docId);
+
+    await firestore.runTransaction((transaction) async {
+      var snapshot = await transaction.get(postRef);
+      if (!snapshot.exists) return;
+
+      currentLikes = snapshot.data()?['likes'] ?? 0;
+      currentLikes--;
+
+      transaction.update(postRef, {
+        'likes': currentLikes,
+      });
+    });
+
+    int index = docsId.indexOf(docId); // docId의 인덱스 찾기
+    if (index != -1) {
+      data[index]['likes'] = currentLikes; // 해당 인덱스의 likes 값 갱신
+      notifyListeners(); // UI 업데이트
     }
 
     await getLiked();
