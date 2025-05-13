@@ -53,10 +53,12 @@ class _FollowerState extends State<Follower> {
             onPressed: (){
               context.read<Store>().addFollower();
             },
-            child: Text('팔로우', style: TextStyle(
+            child: Text(
+              context.watch<Store>().following.contains(widget.name) ?
+              '언팔로우' : '팔로우',
+              style: TextStyle(
               fontSize: 15,
               color: Colors.white,
-
             ),),
           ),
 

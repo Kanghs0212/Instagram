@@ -16,6 +16,7 @@ class Store extends ChangeNotifier {
   var liked=[];
   var following=[];
   var docRef;
+  var lastDoc;
 
   getFollowing() async {
     var snapshot = await firestore

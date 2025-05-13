@@ -11,10 +11,9 @@ final firestore = FirebaseFirestore.instance;
 final auth = FirebaseAuth.instance;
 
 class HomeTap extends StatefulWidget {
-  HomeTap({super.key, this.data, this.lastDoc, this.docsId});
+  HomeTap({super.key, this.data, this.docsId});
 
   var data;
-  var lastDoc;
   var docsId;
 
   @override
@@ -45,26 +44,42 @@ class _HomeTapState extends State<HomeTap> {
   }
 
   getData() async {
-    try{
+    try {
       var nextResult = await firestore
           .collection('post')
-          .startAfterDocument(widget.lastDoc.docs.last)
+          .orderBy('timestamp', descending: false)
+          .startAfterDocument(context.read<Store>().lastDoc.docs.last)
           .limit(3)
           .get();
 
+      if (nextResult.docs.isEmpty) {
+        // 가져올 문서가 더 이상 없을 때만 flag 설정
+        flag = true;
+        print("데이터가 없음;");
+
+        Future.delayed(Duration(seconds: 1), () {
+          flag = false;
+        });
+        return;
+      }
+
+      print("ㅇㅇ");
       setState(() {
-        widget.lastDoc = nextResult;
-        var tmpData =  nextResult.docs.map((doc) => doc.data()).toList();
+        context.read<Store>().lastDoc = nextResult;
+        var tmpData = nextResult.docs.map((doc) => doc.data()).toList();
         var tmpIds = nextResult.docs.map((doc) => doc.id).toList();
 
         widget.data.addAll(tmpData);
         widget.docsId.addAll(tmpIds);
       });
-      isError = false;
 
-    }catch(e){
-      print(e);
-      isError = true;
+      // 다음 로딩을 위해 flag를 다시 false로
+      Future.delayed(Duration(seconds: 1), () {
+        flag = false;
+      });
+    } catch (e) {
+      print("에러 발생: $e");
+      // 네트워크 오류 같은 진짜 예외만 처리
     }
   }
 
@@ -88,19 +103,11 @@ class _HomeTapState extends State<HomeTap> {
 
     scroll.addListener(() {
       if (scroll.position.pixels == scroll.position.maxScrollExtent && !flag) {
-        if(auth.currentUser?.uid!=null){
-          getData();
-          flag = true;
-          alreadySeeMessage = false;
-          if(!isError){
-            Future.delayed(Duration(seconds: 1), () {
-              flag = false;
-            });
-          }
-        }
-        else if(auth.currentUser?.uid==null && !alreadySeeMessage){
+        if (auth.currentUser?.uid != null) {
+          getData(); // 여기서 flag = true는 getData 안에서 관리함
+        } else if (!alreadySeeMessage) {
           showLoginMessage();
-          alreadySeeMessage=true;
+          alreadySeeMessage = true;
         }
       }
     });

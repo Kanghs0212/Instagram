@@ -19,6 +19,7 @@ import 'notification.dart';
 import 'Widgets/shop.dart';
 import 'Widgets/Login.dart';
 
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
@@ -48,20 +49,25 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   var tap = 0;
-  var lastDoc;
   var data = [];
   var docsId = [];
   var userImage;
 
   getData() async {
     try{
-      lastDoc = await firestore.collection('post').limit(3).get();
+      if(context.read<Store>().lastDoc== null) {
+        context.read<Store>().lastDoc = await firestore.collection('post').orderBy(
+            'timestamp', descending: false).limit(3).get();
+      }else{
+        context.read<Store>().lastDoc = await firestore.collection('post').orderBy(
+            'timestamp', descending: false).startAfterDocument(context.read<Store>().lastDoc).limit(3).get();
+      }
       context.read<Store>().getLiked();
       context.read<Store>().getFollowing();
 
       setState(() {
-        data = lastDoc.docs.map((doc) => doc.data()).toList();
-        docsId = lastDoc.docs.map((doc) => doc.id).toList();
+        data = context.read<Store>().lastDoc.docs.map((doc) => doc.data()).toList();
+        docsId = context.read<Store>().lastDoc.docs.map((doc) => doc.id).toList();
       });
     }catch(e){
       print(e);
@@ -75,26 +81,16 @@ class _MyAppState extends State<MyApp> {
       return;
     }
 
-    var tempData = {
-      "id": data.length,
-      "image": image, // 여기서 image는 파일 경로 또는 File 객체
-      "likes": 30,
-      "date": "?",
-      "content": inputData.text,
-      "user": "test"
-    };
-
     var newDoc = await firestore.collection('post').add({
       "id": data.length,
       "image": image,         // 이 값은 String (예: Firebase Storage URL) 이어야 함!
       "likes": 30,
-      "date": DateTime.now().toIso8601String(), // 또는 원하는 날짜 형식으로 설정
+      "timestamp": FieldValue.serverTimestamp(),  // 또는 원하는 날짜 형식으로 설정
       "content": inputData.text,
       "user": auth.currentUser?.email ?? "anonymous" // 실제 로그인 유저 이메일 사용
     });
 
     setState(() {
-      data.add(tempData);
       docsId.add(newDoc.id);
     });
   }
@@ -166,7 +162,7 @@ class _MyAppState extends State<MyApp> {
 
 
       ),
-      body: [HomeTap(data: data, lastDoc: lastDoc, docsId: docsId), Shop()][tap],
+      body: [HomeTap(data: data, docsId: docsId), Shop()][tap],
       bottomNavigationBar: BottomNavigationBar(
         iconSize: 30,
         showUnselectedLabels: false,
