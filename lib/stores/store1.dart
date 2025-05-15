@@ -22,6 +22,41 @@ class Store extends ChangeNotifier {
   var data = [];
   var docsId = [];
 
+  addPicture(String? loc) async {
+    if(loc == null){
+      return;
+    }
+
+    var querySnapshot = await firestore
+        .collection('pictures')
+        .where('user', isEqualTo: auth.currentUser?.email)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      var newDoc = await firestore.collection('pictures').add({
+        "user": auth.currentUser?.email ?? "anonymous",
+        "loc": [loc],
+      });
+
+    }else{
+      var postRef = querySnapshot.docs.first.reference;
+      print(postRef);
+      await firestore.runTransaction((transaction) async {
+        var snapshot = await transaction.get(postRef);
+        if (!snapshot.exists) return;
+
+        List<dynamic> locList = snapshot.data()?['loc'] ?? [];
+        locList.add(loc);
+
+
+        transaction.update(postRef, {'loc': locList});
+      });
+    }
+    notifyListeners();
+
+  }
+
   getFollowing() async {
     var snapshot = await firestore
         .collection('following')
@@ -177,15 +212,16 @@ class Store extends ChangeNotifier {
         name = inputName;
       }
 
-      //사진
-      var result = await http
-          .get(Uri.parse(userData[0]['pictures']));
-      var result2 = jsonDecode(result.body);
-      profileImage = result2;
+      var userPics = await firestore.collection('pictures').where('user', isEqualTo: inputName).get();
+
+      if (userPics.docs.isNotEmpty) {
+        List<dynamic>? locList = userPics.docs[0].data()['loc'];
+        print(locList);
+        profileImage = locList!;
+      }
+
       notifyListeners();
 
-      // await firestore.collection('product').add({'name' : '내복', 'price' : 5000});
-      // var result = await firestore.collection('product').where().get();
 
     }catch(e){
       print('데이터 get하는 과정에서 에러 발생');

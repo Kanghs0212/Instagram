@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:provider/provider.dart';
+
+import '../stores/store1.dart';
 
 class upload extends StatefulWidget {
   upload({super.key, this.userImage, this.addData});
@@ -29,6 +32,7 @@ class _uploadState extends State<upload> {
         downloadUrl = url;
         widget.addData(downloadUrl, inputData);
       });
+      await context.read<Store>().addPicture(url);
 
       print('업로드 완료! 다운로드 URL: $downloadUrl');
 
